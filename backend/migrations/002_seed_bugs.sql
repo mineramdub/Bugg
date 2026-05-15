@@ -1,0 +1,103 @@
+-- Seed the 5 bugs that were originally hardcoded in frontend/bugs.jsx.
+-- Already applied to project cyfzahgqjphvzltxhgbk.
+
+insert into public.bugs (id, day_label, difficulty, streak_level, title, description, code, bug_line, answer, accept, hint, explanation, xp) values
+(1,
+ 'Jour 1', 'Facile', 1,
+ 'La boucle qui dépasse',
+ 'Cette fonction calcule la somme d''un tableau, mais lit une case en trop.',
+ array[
+   'int sum_array(int arr[], int n) {',
+   '  int sum = 0;',
+   '  for (int i = 0; i <= n; i++) {',
+   '    sum += arr[i];',
+   '  }',
+   '  return sum;',
+   '}'
+ ],
+ 2,
+ 'for (int i = 0; i < n; i++) {',
+ array['for\s*\(\s*int\s+i\s*=\s*0\s*;\s*i\s*<\s*n\s*;\s*i\s*\+\+\s*\)\s*\{?'],
+ 'Que se passe-t-il à la dernière itération quand i == n ?',
+ 'arr[n] est hors limites — un tableau indexé de 0 à n-1 a n éléments. Il faut s''arrêter avant n.',
+ 10),
+(2,
+ 'Jour 2', 'Facile', 2,
+ '= ou == ?',
+ 'Cette condition ne fait jamais ce qu''on attend. Pourquoi ?',
+ array[
+   'int is_winner(int score) {',
+   '  if (score = 100) {',
+   '    return 1;',
+   '  }',
+   '  return 0;',
+   '}'
+ ],
+ 1,
+ 'if (score == 100) {',
+ array['if\s*\(\s*score\s*==\s*100\s*\)\s*\{?'],
+ '= est une affectation, pas une comparaison.',
+ 'score = 100 affecte 100 à score puis évalue à 100 (truthy) — la fonction renvoie toujours 1.',
+ 10),
+(3,
+ 'Jour 3', 'Moyen', 3,
+ 'Le pointeur fantôme',
+ 'Ce code copie une chaîne mais plante à l''exécution.',
+ array[
+   '#include <string.h>',
+   '',
+   'char *greet(void) {',
+   '  char *buf;',
+   '  strcpy(buf, "Bonjour");',
+   '  return buf;',
+   '}'
+ ],
+ 4,
+ '  char *buf = malloc(8);',
+ array[
+   'char\s*\*\s*buf\s*=\s*malloc\s*\(\s*\d+\s*\)\s*;?',
+   'char\s+buf\s*\[\s*\d+\s*\]\s*;?'
+ ],
+ 'Tu écris dans un pointeur qui ne pointe nulle part.',
+ 'buf n''a pas de mémoire allouée — strcpy écrit dans une adresse non initialisée. Alloue avec malloc ou utilise un buffer statique.',
+ 20),
+(4,
+ 'Jour 4', 'Moyen', 4,
+ 'La fuite silencieuse',
+ 'Cette fonction alloue mais oublie de rendre la mémoire.',
+ array[
+   'void process(int n) {',
+   '  int *arr = malloc(n * sizeof(int));',
+   '  for (int i = 0; i < n; i++) {',
+   '    arr[i] = i * i;',
+   '  }',
+   '  print_sum(arr, n);',
+   '}'
+ ],
+ 5,
+ E'  print_sum(arr, n);\n  free(arr);',
+ array['free\s*\(\s*arr\s*\)\s*;'],
+ 'Chaque malloc doit avoir son free.',
+ 'Sans free(arr), la mémoire reste allouée jusqu''à la fin du programme — fuite mémoire.',
+ 20),
+(5,
+ 'Jour 5', 'Moyen', 5,
+ 'Division dangereuse',
+ 'La moyenne tombe parfois sur une division par zéro.',
+ array[
+   'float average(int *arr, int n) {',
+   '  int sum = 0;',
+   '  for (int i = 0; i < n; i++)',
+   '    sum += arr[i];',
+   '  return sum / n;',
+   '}'
+ ],
+ 4,
+ '  return n > 0 ? (float)sum / n : 0.0f;',
+ array[
+   'n\s*[>!]\s*=?\s*0',
+   'if\s*\(\s*n\s*==\s*0\s*\)'
+ ],
+ 'Que vaut sum / n quand n == 0 ?',
+ 'Diviser par zéro plante (ou retourne NaN/inf). Garde-fou nécessaire.',
+ 25);

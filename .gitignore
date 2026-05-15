@@ -1,0 +1,12 @@
+node_modules/
+.DS_Store
+.env
+.env.local
+*.log
+dist/
+.vscode/
+.idea/
+
+# Skip the original upload zip from version control
+Maths app*.zip
+frontend/uploads/
