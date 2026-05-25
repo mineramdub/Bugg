@@ -72,9 +72,9 @@
 </div>
 
 <!-- App modules (order matters: bugs/shapes provide globals app.jsx needs) -->
-<script type="text/babel" data-presets="env,react" src="bugs.jsx"></script>
-<script type="text/babel" data-presets="env,react" src="shapes.jsx"></script>
-<script type="text/babel" data-presets="env,react" src="app.jsx"></script>
+<script type="text/babel" src="bugs.jsx"></script>
+<script type="text/babel" src="shapes.jsx"></script>
+<script type="text/babel" src="app.jsx"></script>
 
 <!-- Mobile shell: swipe between 3 variants on home, wire to Supabase -->
 <script type="text/babel" data-presets="env,react">
@@ -87,7 +87,7 @@ const VARIANTS = ["scattered", "hero", "journey"];
 function MobileRoot() {
   const api = useMemo(() => BuggAPI.create(), []);
   const [variantIdx, setVariantIdx] = useState(1); // hero by default
-  const [screen, setScreen] = useState("home");   // home | challenge | result | loading | error
+  const [screen, setScreen] = useState("loading"); // start in loading until API responds
   const [bug, setBug] = useState(null);
   const [device, setDevice] = useState(null);
   const [resultData, setResultData] = useState(null);
@@ -105,10 +105,14 @@ function MobileRoot() {
     } catch (e) {
       // Offline / API down → fallback to local BUGS so the app still works
       console.warn("API unreachable, falling back to local BUGS", e);
-      const fallbackStreak = 0;
-      setBug(BUGS[Math.min(fallbackStreak, BUGS.length - 1)]);
-      setDevice({ streak: fallbackStreak, best_streak: 0, total_xp: 0, bugs_solved: 0, already_solved_today: false });
-      setScreen("home");
+      if (typeof BUGS !== "undefined" && BUGS.length) {
+        setBug(BUGS[0]);
+        setDevice({ streak: 0, best_streak: 0, total_xp: 0, bugs_solved: 0, already_solved_today: false });
+        setScreen("home");
+      } else {
+        setError(e);
+        setScreen("error");
+      }
     }
   }, [api]);
   useEffect(() => { load(); }, [load]);
@@ -193,7 +197,18 @@ function MobileRoot() {
   }, [variantIdx, screen]);
 
   // ── Render ────────────────────────────────────────────────────
-  if (screen === "loading") return <div className="loading">Chargement du bug du jour…</div>;
+  if (screen === "error") {
+    return (
+      <div className="errorbox">
+        <div style={{ fontSize: 32, lineHeight: 1, marginBottom: 12 }}>Bugg</div>
+        <div style={{ fontFamily: "Inter, sans-serif", fontSize: 14, color: "rgba(0,0,0,0.55)" }}>
+          Impossible de charger le bug du jour. Vérifie ta connexion.
+        </div>
+        <button onClick={load}>Réessayer</button>
+      </div>
+    );
+  }
+  if (screen === "loading" || !bug) return <div className="loading">Chargement du bug du jour…</div>;
 
   if (screen === "challenge") {
     return <ChallengeScreen bug={bug} palette={PALETTE} speed={1} onSubmit={submit} onBack={back} />;
