@@ -2,157 +2,264 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8" />
-<title>Bugg — Le bug du jour</title>
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Bugg — Le bug C du jour</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+<meta name="theme-color" content="#fafaf7" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Bugg" />
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <style>
-  html, body { margin: 0; background: #f0eee9; height: 100%; }
-  body { font-family: -apple-system, "Inter", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  :root { --bg: #fafaf7; --ink: #0f0f0d; }
+  html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); overscroll-behavior: none; }
+  body {
+    font-family: -apple-system, "Inter", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: pan-y;
+  }
   * { box-sizing: border-box; }
-  /* Hide scrollbars inside frames */
+  #root { height: 100dvh; width: 100vw; overflow: hidden; position: relative; }
   .ios-scroll::-webkit-scrollbar { display: none; }
   .ios-scroll { scrollbar-width: none; }
+
+  .stage {
+    position: absolute; inset: 0;
+    display: flex; transition: transform 0.32s cubic-bezier(0.32,0.72,0,1);
+    will-change: transform;
+  }
+  .pane { flex: 0 0 100%; height: 100%; position: relative; }
+
+  .dots {
+    position: absolute; bottom: calc(20px + env(safe-area-inset-bottom));
+    left: 0; right: 0; display: flex; justify-content: center; gap: 8px;
+    z-index: 50; pointer-events: none;
+  }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(0,0,0,0.18); transition: all 0.2s;
+    pointer-events: auto; cursor: pointer; border: none; padding: 0;
+  }
+  .dot.active { background: var(--ink); width: 22px; border-radius: 4px; }
+
+  .loading, .errorbox {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: var(--ink); font-family: "Instrument Serif", Georgia, serif;
+    text-align: center; padding: 32px;
+  }
+  .errorbox button {
+    margin-top: 18px; padding: 12px 22px; border-radius: 12px;
+    background: var(--ink); color: #fff; border: none; font-size: 15px;
+    font-family: inherit; cursor: pointer;
+  }
 </style>
 
-<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
 
+<!-- API client (regular JS, no Babel) -->
+<script src="bugg-api.js"></script>
 </head>
 <body>
-<div id="root"></div>
+<div id="root">
+  <div class="loading">Chargement…</div>
+</div>
 
-<script type="text/babel" src="ios-frame.jsx"></script>
-<script type="text/babel" src="design-canvas.jsx"></script>
-<script type="text/babel" src="tweaks-panel.jsx"></script>
-<script type="text/babel" src="shapes.jsx"></script>
-<script type="text/babel" src="bugs.jsx"></script>
-<script type="text/babel" src="challenges.jsx"></script>
-<script type="text/babel" src="app.jsx"></script>
+<!-- App modules (order matters: bugs/shapes provide globals app.jsx needs) -->
+<script type="text/babel" data-presets="env,react" src="bugs.jsx"></script>
+<script type="text/babel" data-presets="env,react" src="shapes.jsx"></script>
+<script type="text/babel" data-presets="env,react" src="app.jsx"></script>
 
+<!-- Mobile shell: swipe between 3 variants on home, wire to Supabase -->
 <script type="text/babel" data-presets="env,react">
-const { useState } = React;
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
-// 3 palettes — index-aligned across all variations. Same slot, different hue families.
-//  [0] pink / primary  [1] dark accent  [2] blob fill  [3] checker A
-//  [4] squircle fill   [5] squiggle/highlight  [6] scallop  [7] arc-stripe-A
-//  [8] arc-stripe-B / pin outer / drop fill
-const PALETTES = /*EDITMODE-BEGIN*/{
-  "speed": 1,
-  "palette": ["#ff5fa2","#1a3a2e","#7c3aed","#fcd34d","#fb923c","#3eea84","#5a0f1a","#ff00d4","#1e3a8a"]
-}/*EDITMODE-END*/;
+// Default palette — Figma classic
+const PALETTE = ["#ff5fa2","#1a3a2e","#7c3aed","#fcd34d","#fb923c","#3eea84","#5a0f1a","#ff00d4","#1e3a8a"];
+const VARIANTS = ["scattered", "hero", "journey"];
 
-const PALETTE_OPTIONS = [
-  // 1. Figma classic — pink + dark green + purple + yellow + orange
-  ["#ff5fa2","#1a3a2e","#7c3aed","#fcd34d","#fb923c","#3eea84","#5a0f1a","#ff00d4","#1e3a8a"],
-  // 2. Citrus pop — coral + olive + magenta + lime
-  ["#fb7185","#365314","#a21caf","#fde047","#fb923c","#84cc16","#7c2d12","#ec4899","#1e293b"],
-  // 3. Forest — sage + ink + mustard + clay
-  ["#d97757","#1f2937","#5b21b6","#fbbf24","#0f766e","#84cc16","#7c2d12","#a16207","#1e3a8a"],
-  // 4. Berry — magentas + violet + cream
-  ["#ec4899","#581c87","#a855f7","#fef08a","#f472b6","#22c55e","#831843","#d946ef","#312e81"],
-];
+function MobileRoot() {
+  const api = useMemo(() => BuggAPI.create(), []);
+  const [variantIdx, setVariantIdx] = useState(1); // hero by default
+  const [screen, setScreen] = useState("home");   // home | challenge | result | loading | error
+  const [bug, setBug] = useState(null);
+  const [device, setDevice] = useState(null);
+  const [resultData, setResultData] = useState(null);
+  const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
-function Root() {
-  const [t, setTweak] = useTweaks(PALETTES);
-  // The tweak stores either an index (0..3) of palette options or a custom array
-  const [paletteIdx, setPaletteIdx] = useState(0);
-  const palette = Array.isArray(t.palette) && t.palette.length === 9
-    ? t.palette
-    : PALETTE_OPTIONS[paletteIdx];
+  // ── Fetch today's bug ─────────────────────────────────────────
+  const load = useCallback(async () => {
+    setScreen("loading"); setError(null);
+    try {
+      const data = await api.getBugOfTheDay();
+      setBug(data.bug);
+      setDevice(data.device);
+      setScreen("home");
+    } catch (e) {
+      // Offline / API down → fallback to local BUGS so the app still works
+      console.warn("API unreachable, falling back to local BUGS", e);
+      const fallbackStreak = 0;
+      setBug(BUGS[Math.min(fallbackStreak, BUGS.length - 1)]);
+      setDevice({ streak: fallbackStreak, best_streak: 0, total_xp: 0, bugs_solved: 0, already_solved_today: false });
+      setScreen("home");
+    }
+  }, [api]);
+  useEffect(() => { load(); }, [load]);
 
-  // when user picks a swatch, store the full array via setTweak so it persists
-  function pickPalette(idx) {
-    setPaletteIdx(idx);
-    setTweak('palette', PALETTE_OPTIONS[idx]);
+  // ── Actions ───────────────────────────────────────────────────
+  function start() { setScreen("challenge"); }
+  function back()  { setScreen("home"); }
+
+  async function submit({ draft }) {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const r = await api.submit(bug.id, draft);
+      setResultData({ draft, correct: r.correct, answer: r.answer, explanation: r.explanation, xp_awarded: r.xp_awarded });
+      if (r.device) setDevice(r.device);
+      setScreen("result");
+    } catch (e) {
+      // fallback: try local regex if available (offline mode)
+      const correct = Array.isArray(bug.accept) ? bug.accept.some(re => re.test(draft)) : false;
+      setResultData({
+        draft, correct,
+        answer: bug.answer || "",
+        explanation: bug.explanation || "Le serveur est injoignable — réponse vérifiée localement.",
+        xp_awarded: correct ? (bug.xp || 0) : 0,
+      });
+      setScreen("result");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
-  // normalize speed to a multiplier
-  const speed = t.speed;
+  function next() { load(); /* refetch — server updated streak/xp */ }
 
-  // determine which palette index matches the current array (for highlighting)
-  const matchedIdx = PALETTE_OPTIONS.findIndex(p => JSON.stringify(p) === JSON.stringify(palette));
+  // ── Swipe between variants on the home screen ─────────────────
+  const stageRef = useRef(null);
+  const touch = useRef({ startX: 0, startY: 0, dx: 0, active: false, locked: null });
+
+  function onTouchStart(e) {
+    if (screen !== "home" || !e.touches[0]) return;
+    touch.current = { startX: e.touches[0].clientX, startY: e.touches[0].clientY, dx: 0, active: true, locked: null };
+  }
+  function onTouchMove(e) {
+    if (!touch.current.active || screen !== "home" || !e.touches[0]) return;
+    const dx = e.touches[0].clientX - touch.current.startX;
+    const dy = e.touches[0].clientY - touch.current.startY;
+    if (touch.current.locked === null) {
+      // decide whether this gesture is horizontal (swipe between variants) or vertical (let it scroll)
+      if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+        touch.current.locked = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+      }
+    }
+    if (touch.current.locked === "x") {
+      touch.current.dx = dx;
+      if (stageRef.current) {
+        const pct = (dx / window.innerWidth) * 100;
+        stageRef.current.style.transition = "none";
+        stageRef.current.style.transform = `translateX(calc(${-variantIdx * 100}% + ${pct}%))`;
+      }
+      e.preventDefault();
+    }
+  }
+  function onTouchEnd() {
+    if (!touch.current.active) return;
+    const dx = touch.current.dx;
+    const locked = touch.current.locked;
+    touch.current.active = false;
+    if (stageRef.current) {
+      stageRef.current.style.transition = ""; // restore CSS transition
+    }
+    if (locked !== "x") return;
+    const threshold = window.innerWidth * 0.18;
+    let next = variantIdx;
+    if (dx < -threshold && variantIdx < VARIANTS.length - 1) next = variantIdx + 1;
+    else if (dx > threshold && variantIdx > 0) next = variantIdx - 1;
+    setVariantIdx(next);
+    if (stageRef.current) stageRef.current.style.transform = `translateX(${-next * 100}%)`;
+  }
+
+  useEffect(() => {
+    // keep stage transform in sync when variantIdx changes via dot click
+    if (stageRef.current) stageRef.current.style.transform = `translateX(${-variantIdx * 100}%)`;
+  }, [variantIdx, screen]);
+
+  // ── Render ────────────────────────────────────────────────────
+  if (screen === "loading") return <div className="loading">Chargement du bug du jour…</div>;
+
+  if (screen === "challenge") {
+    return <ChallengeScreen bug={bug} palette={PALETTE} speed={1} onSubmit={submit} onBack={back} />;
+  }
+  if (screen === "result") {
+    return (
+      <ResultScreen
+        bug={bug}
+        correct={resultData.correct}
+        draft={resultData.draft}
+        answer={resultData.answer}
+        explanation={resultData.explanation}
+        xp_awarded={resultData.xp_awarded}
+        palette={PALETTE} speed={1}
+        onContinue={next}
+      />
+    );
+  }
+
+  // home — swipeable between 3 variants
+  const streak = device?.streak ?? 0;
+  const homes = [
+    <HomeScattered key="s" streak={streak} bug={bug} speed={1} palette={PALETTE} onStart={start} />,
+    <HomeHero      key="h" streak={streak} bug={bug} speed={1} palette={PALETTE} onStart={start} />,
+    <HomeJourney   key="j" streak={streak} bug={bug} speed={1} palette={PALETTE} onStart={start} />,
+  ];
 
   return (
-    <DesignCanvas>
-      <DCSection id="bugg-onboarding" title="Bugg" subtitle="Le bug C du jour — 3 directions visuelles">
-        <DCArtboard id="scattered" label="A · Scattered" width={402} height={874}>
-          <IOSDevice>
-            <BuggApp variant="scattered" palette={palette} speed={speed} />
-          </IOSDevice>
-        </DCArtboard>
-        <DCArtboard id="hero" label="B · Hero" width={402} height={874}>
-          <IOSDevice>
-            <BuggApp variant="hero" palette={palette} speed={speed} />
-          </IOSDevice>
-        </DCArtboard>
-        <DCArtboard id="journey" label="C · Journey" width={402} height={874}>
-          <IOSDevice>
-            <BuggApp variant="journey" palette={palette} speed={speed} />
-          </IOSDevice>
-        </DCArtboard>
-      </DCSection>
-
-      <DCSection id="bugg-challenge" title="Défi du jour" subtitle="3 façons d'entrer le fix">
-        <DCArtboard id="chA" label="A · Composer" width={402} height={874}>
-          <IOSDevice dark>
-            <ChallengeA bug={BUGS[2]} palette={palette} speed={speed} onSubmit={() => {}} onBack={() => {}} />
-          </IOSDevice>
-        </DCArtboard>
-        <DCArtboard id="chB" label="B · Inline" width={402} height={874}>
-          <IOSDevice>
-            <ChallengeB bug={BUGS[2]} palette={palette} speed={speed} onSubmit={() => {}} onBack={() => {}} />
-          </IOSDevice>
-        </DCArtboard>
-        <DCArtboard id="chC" label="C · QCM" width={402} height={874}>
-          <IOSDevice>
-            <ChallengeC bug={BUGS[2]} palette={palette} speed={speed} onSubmit={() => {}} onBack={() => {}} />
-          </IOSDevice>
-        </DCArtboard>
-      </DCSection>
-
-      <TweaksPanel>
-        <TweakSection label="Animation" />
-        <TweakSlider
-          label="Vitesse" value={speed}
-          min={0.2} max={2.5} step={0.1} unit="×"
-          onChange={(v) => setTweak('speed', v)}
-        />
-        <TweakSection label="Palette des formes" />
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
-          {PALETTE_OPTIONS.map((p, i) => {
-            const isActive = i === matchedIdx;
-            return (
-              <button
-                key={i}
-                onClick={() => pickPalette(i)}
-                style={{
-                  border: isActive ? '2px solid #29261b' : '1px solid rgba(0,0,0,0.1)',
-                  background: '#fff', borderRadius: 10, padding: 8, cursor: 'pointer',
-                  display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start',
-                }}
-              >
-                <div style={{ display: 'flex', gap: 3, width: '100%' }}>
-                  {[0,1,2,5,6].map(s => (
-                    <div key={s} style={{ flex: 1, height: 18, borderRadius: 4, background: p[s] }} />
-                  ))}
-                </div>
-                <div style={{ fontSize: 10.5, fontWeight: 600, color: '#29261b' }}>
-                  {['Figma','Citrus','Forest','Berry'][i]}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </TweaksPanel>
-    </DesignCanvas>
+    <div
+      style={{ position: "absolute", inset: 0, overflow: "hidden", touchAction: "pan-y" }}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      onTouchCancel={onTouchEnd}
+    >
+      <div ref={stageRef} className="stage" style={{ transform: `translateX(${-variantIdx * 100}%)` }}>
+        {homes.map((h, i) => (
+          <div key={i} className="pane">{h}</div>
+        ))}
+      </div>
+      <div className="dots">
+        {VARIANTS.map((_, i) => (
+          <button
+            key={i} className={"dot" + (i === variantIdx ? " active" : "")}
+            onClick={() => setVariantIdx(i)}
+            aria-label={`Variante ${i+1}`}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<Root />);
+window.__renderBuggMobile = () => {
+  ReactDOM.createRoot(document.getElementById("root")).render(<MobileRoot />);
+};
+
+// Wait until app.jsx finished loading (provides HomeScattered/HomeHero/HomeJourney/ChallengeScreen/ResultScreen)
+function whenReady(fn) {
+  if (window.HomeScattered && window.HomeHero && window.HomeJourney && window.ChallengeScreen && window.ResultScreen) {
+    fn();
+  } else {
+    setTimeout(() => whenReady(fn), 50);
+  }
+}
+whenReady(window.__renderBuggMobile);
 </script>
 </body>
 </html>

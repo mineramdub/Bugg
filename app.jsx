@@ -306,8 +306,8 @@ function ChallengeScreen({ bug, palette, onSubmit, onBack, speed }) {
   }, [editing]);
 
   function submit() {
-    const matches = bug.accept.some(re => re.test(draft));
-    onSubmit({ correct: matches, draft });
+    // Just pass the draft up — the parent decides correctness (server or local fallback).
+    onSubmit({ draft });
   }
 
   return (
@@ -456,7 +456,11 @@ function Hint({ hint, accent }) {
 // ─────────────────────────────────────────────────────────────
 // Result screen
 // ─────────────────────────────────────────────────────────────
-function ResultScreen({ bug, correct, draft, palette, speed, onContinue }) {
+function ResultScreen({ bug, correct, draft, palette, speed, onContinue, answer, explanation, xp_awarded }) {
+  // Prefer props (server response) over bug fields (offline/canvas fallback)
+  const _answer      = (answer !== undefined && answer !== null) ? answer : bug.answer;
+  const _explanation = (explanation !== undefined && explanation !== null) ? explanation : bug.explanation;
+  const _xp          = (xp_awarded !== undefined && xp_awarded !== null) ? xp_awarded : (bug.xp || 0);
   return (
     <div style={{
       width: '100%', height: '100%', background: correct ? PAL.bg : PAL.bg,
@@ -488,7 +492,7 @@ function ResultScreen({ bug, correct, draft, palette, speed, onContinue }) {
           fontFamily: FONT_DISPLAY, fontSize: 52, lineHeight: 0.95,
           color: PAL.ink, marginTop: 8, letterSpacing: -1,
         }}>
-          {correct ? `+${bug.xp} XP` : 'Réessaie'}
+          {correct ? `+${_xp} XP` : 'Réessaie'}
         </div>
       </div>
 
@@ -506,10 +510,10 @@ function ResultScreen({ bug, correct, draft, palette, speed, onContinue }) {
           background: '#f5f4ef', padding: '8px 10px', borderRadius: 8,
           marginTop: 8, lineHeight: 1.4,
         }}>
-          {bug.answer}
+          {_answer}
         </div>
         <div style={{ fontSize: 13.5, color: 'rgba(0,0,0,0.65)', marginTop: 10, lineHeight: 1.45 }}>
-          {bug.explanation}
+          {_explanation}
         </div>
       </div>
 

@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>Bugg — Le bug du jour</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  html, body { margin: 0; background: #f0eee9; height: 100%; }
+  body { font-family: -apple-system, "Inter", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  * { box-sizing: border-box; }
+  /* Hide scrollbars inside frames */
+  .ios-scroll::-webkit-scrollbar { display: none; }
+  .ios-scroll { scrollbar-width: none; }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="shapes.jsx"></script>
+<script type="text/babel" src="bugs.jsx"></script>
+<script type="text/babel" src="challenges.jsx"></script>
+<script type="text/babel" src="app.jsx"></script>
+
+<script type="text/babel" data-presets="env,react">
+const { useState } = React;
+
+// 3 palettes — index-aligned across all variations. Same slot, different hue families.
+//  [0] pink / primary  [1] dark accent  [2] blob fill  [3] checker A
+//  [4] squircle fill   [5] squiggle/highlight  [6] scallop  [7] arc-stripe-A
+//  [8] arc-stripe-B / pin outer / drop fill
+const PALETTES = /*EDITMODE-BEGIN*/{
+  "speed": 1,
+  "palette": ["#ff5fa2","#1a3a2e","#7c3aed","#fcd34d","#fb923c","#3eea84","#5a0f1a","#ff00d4","#1e3a8a"]
+}/*EDITMODE-END*/;
+
+const PALETTE_OPTIONS = [
+  // 1. Figma classic — pink + dark green + purple + yellow + orange
+  ["#ff5fa2","#1a3a2e","#7c3aed","#fcd34d","#fb923c","#3eea84","#5a0f1a","#ff00d4","#1e3a8a"],
+  // 2. Citrus pop — coral + olive + magenta + lime
+  ["#fb7185","#365314","#a21caf","#fde047","#fb923c","#84cc16","#7c2d12","#ec4899","#1e293b"],
+  // 3. Forest — sage + ink + mustard + clay
+  ["#d97757","#1f2937","#5b21b6","#fbbf24","#0f766e","#84cc16","#7c2d12","#a16207","#1e3a8a"],
+  // 4. Berry — magentas + violet + cream
+  ["#ec4899","#581c87","#a855f7","#fef08a","#f472b6","#22c55e","#831843","#d946ef","#312e81"],
+];
+
+function Root() {
+  const [t, setTweak] = useTweaks(PALETTES);
+  // The tweak stores either an index (0..3) of palette options or a custom array
+  const [paletteIdx, setPaletteIdx] = useState(0);
+  const palette = Array.isArray(t.palette) && t.palette.length === 9
+    ? t.palette
+    : PALETTE_OPTIONS[paletteIdx];
+
+  // when user picks a swatch, store the full array via setTweak so it persists
+  function pickPalette(idx) {
+    setPaletteIdx(idx);
+    setTweak('palette', PALETTE_OPTIONS[idx]);
+  }
+
+  // normalize speed to a multiplier
+  const speed = t.speed;
+
+  // determine which palette index matches the current array (for highlighting)
+  const matchedIdx = PALETTE_OPTIONS.findIndex(p => JSON.stringify(p) === JSON.stringify(palette));
+
+  return (
+    <DesignCanvas>
+      <DCSection id="bugg-onboarding" title="Bugg" subtitle="Le bug C du jour — 3 directions visuelles">
+        <DCArtboard id="scattered" label="A · Scattered" width={402} height={874}>
+          <IOSDevice>
+            <BuggApp variant="scattered" palette={palette} speed={speed} />
+          </IOSDevice>
+        </DCArtboard>
+        <DCArtboard id="hero" label="B · Hero" width={402} height={874}>
+          <IOSDevice>
+            <BuggApp variant="hero" palette={palette} speed={speed} />
+          </IOSDevice>
+        </DCArtboard>
+        <DCArtboard id="journey" label="C · Journey" width={402} height={874}>
+          <IOSDevice>
+            <BuggApp variant="journey" palette={palette} speed={speed} />
+          </IOSDevice>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="bugg-challenge" title="Défi du jour" subtitle="3 façons d'entrer le fix">
+        <DCArtboard id="chA" label="A · Composer" width={402} height={874}>
+          <IOSDevice dark>
+            <ChallengeA bug={BUGS[2]} palette={palette} speed={speed} onSubmit={() => {}} onBack={() => {}} />
+          </IOSDevice>
+        </DCArtboard>
+        <DCArtboard id="chB" label="B · Inline" width={402} height={874}>
+          <IOSDevice>
+            <ChallengeB bug={BUGS[2]} palette={palette} speed={speed} onSubmit={() => {}} onBack={() => {}} />
+          </IOSDevice>
+        </DCArtboard>
+        <DCArtboard id="chC" label="C · QCM" width={402} height={874}>
+          <IOSDevice>
+            <ChallengeC bug={BUGS[2]} palette={palette} speed={speed} onSubmit={() => {}} onBack={() => {}} />
+          </IOSDevice>
+        </DCArtboard>
+      </DCSection>
+
+      <TweaksPanel>
+        <TweakSection label="Animation" />
+        <TweakSlider
+          label="Vitesse" value={speed}
+          min={0.2} max={2.5} step={0.1} unit="×"
+          onChange={(v) => setTweak('speed', v)}
+        />
+        <TweakSection label="Palette des formes" />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
+          {PALETTE_OPTIONS.map((p, i) => {
+            const isActive = i === matchedIdx;
+            return (
+              <button
+                key={i}
+                onClick={() => pickPalette(i)}
+                style={{
+                  border: isActive ? '2px solid #29261b' : '1px solid rgba(0,0,0,0.1)',
+                  background: '#fff', borderRadius: 10, padding: 8, cursor: 'pointer',
+                  display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start',
+                }}
+              >
+                <div style={{ display: 'flex', gap: 3, width: '100%' }}>
+                  {[0,1,2,5,6].map(s => (
+                    <div key={s} style={{ flex: 1, height: 18, borderRadius: 4, background: p[s] }} />
+                  ))}
+                </div>
+                <div style={{ fontSize: 10.5, fontWeight: 600, color: '#29261b' }}>
+                  {['Figma','Citrus','Forest','Berry'][i]}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </TweaksPanel>
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Root />);
+</script>
+</body>
+</html>
