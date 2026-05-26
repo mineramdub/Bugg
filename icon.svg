@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- iOS-style rounded background -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd1e0"/>
+      <stop offset="1" stop-color="#fef9ee"/>
+    </linearGradient>
+    <radialGradient id="cheek" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ff85b8" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#ff85b8" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- background plate with iOS-style rounded corners (22.37% radius) -->
+  <rect x="0" y="0" width="1024" height="1024" rx="229" ry="229" fill="url(#bg)"/>
+
+  <!-- Floating brand shapes (subtle Figma vibe) -->
+  <circle cx="160" cy="180" r="56" fill="#7c3aed" opacity="0.16"/>
+  <path d="M 824 200 q 60 -30 60 30 q 0 60 -60 30 q -60 -30 0 -60 z" fill="#fcd34d" opacity="0.5"/>
+  <path d="M 110 800 q 24 -40 60 -8 q 32 32 -8 60 q -40 24 -60 -8 q -16 -24 8 -44 z" fill="#1a3a2e" opacity="0.18"/>
+  <circle cx="900" cy="820" r="40" fill="#fb923c" opacity="0.35"/>
+
+  <!-- Antennae -->
+  <path d="M 430 220 q -10 -80 -60 -100" stroke="#1a3a2e" stroke-width="22" stroke-linecap="round" fill="none"/>
+  <path d="M 594 220 q 10 -80 60 -100" stroke="#1a3a2e" stroke-width="22" stroke-linecap="round" fill="none"/>
+  <circle cx="370" cy="120" r="26" fill="#fcd34d" stroke="#1a3a2e" stroke-width="10"/>
+  <circle cx="654" cy="120" r="26" fill="#fcd34d" stroke="#1a3a2e" stroke-width="10"/>
+
+  <!-- Bug body — pink oval -->
+  <ellipse cx="512" cy="540" rx="320" ry="290" fill="#ff5fa2"/>
+
+  <!-- Wing center seam -->
+  <path d="M 512 270 V 800" stroke="#1a3a2e" stroke-width="14" stroke-linecap="round"/>
+
+  <!-- Wing spots — left -->
+  <circle cx="380" cy="430" r="38" fill="#1a3a2e"/>
+  <circle cx="340" cy="560" r="44" fill="#1a3a2e"/>
+  <circle cx="410" cy="680" r="34" fill="#1a3a2e"/>
+
+  <!-- Wing spots — right -->
+  <circle cx="640" cy="450" r="36" fill="#1a3a2e"/>
+  <circle cx="690" cy="580" r="42" fill="#1a3a2e"/>
+  <circle cx="620" cy="690" r="38" fill="#1a3a2e"/>
+
+  <!-- Head — dark green dome on top -->
+  <path d="M 290 350 a 222 162 0 0 1 444 0 z" fill="#1a3a2e"/>
+
+  <!-- Eyes (whites) -->
+  <ellipse cx="440" cy="295" rx="36" ry="42" fill="#ffffff"/>
+  <ellipse cx="584" cy="295" rx="36" ry="42" fill="#ffffff"/>
+  <!-- Pupils -->
+  <circle cx="448" cy="302" r="16" fill="#0f0f0d"/>
+  <circle cx="592" cy="302" r="16" fill="#0f0f0d"/>
+  <!-- Eye highlights -->
+  <circle cx="455" cy="294" r="6" fill="#ffffff"/>
+  <circle cx="599" cy="294" r="6" fill="#ffffff"/>
+
+  <!-- Cheek blush (subtle) -->
+  <ellipse cx="356" cy="500" rx="44" ry="28" fill="url(#cheek)"/>
+  <ellipse cx="668" cy="500" rx="44" ry="28" fill="url(#cheek)"/>
+
+  <!-- Smile -->
+  <path d="M 472 360 q 40 30 80 0" stroke="#0f0f0d" stroke-width="14" stroke-linecap="round" fill="none"/>
+
+  <!-- Tiny feet (just two dots peeking) -->
+  <ellipse cx="280" cy="780" rx="36" ry="20" fill="#1a3a2e"/>
+  <ellipse cx="744" cy="780" rx="36" ry="20" fill="#1a3a2e"/>
+</svg>

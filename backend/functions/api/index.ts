@@ -99,10 +99,32 @@ Deno.serve(async (req) => {
 
   try {
     // ── GET /api/bug-of-the-day ────────────────────────────────────────────
+    // Default: returns the bug at the device's current streak index.
+    // With ?after_id=N: returns the next bug in the catalog (id > N), wrapping
+    //   to the first bug if there is no higher id. Used for "practice mode".
     if (route === "bug-of-the-day" && req.method === "GET") {
       const device_id = url.searchParams.get("device_id") ?? "";
+      const after_id_raw = url.searchParams.get("after_id");
       const device = await ensureDevice(device_id);
-      const bug = await bugForStreak(device.streak);
+      let bug;
+      if (after_id_raw != null && after_id_raw !== "") {
+        const after_id = Number(after_id_raw);
+        const { data: nextRows } = await supa
+          .from("bugs").select("*")
+          .gt("id", isNaN(after_id) ? -1 : after_id)
+          .order("id", { ascending: true }).limit(1);
+        if (nextRows && nextRows.length) {
+          bug = nextRows[0];
+        } else {
+          const { data: firstRows } = await supa
+            .from("bugs").select("*")
+            .order("id", { ascending: true }).limit(1);
+          if (!firstRows || !firstRows.length) throw new Error("no bugs in catalogue");
+          bug = firstRows[0];
+        }
+      } else {
+        bug = await bugForStreak(device.streak);
+      }
       const already = device.last_solved_date === todayUTC();
       return json({
         bug: publicBug(bug),

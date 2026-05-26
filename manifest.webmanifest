@@ -1,0 +1,26 @@
+{
+  "name": "Bugg — Le bug C du jour",
+  "short_name": "Bugg",
+  "description": "Un bug en C par jour. Trouve le fix. Garde la série.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fafaf7",
+  "theme_color": "#1a3a2e",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "maskable"
+    }
+  ]
+}

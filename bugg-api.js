@@ -57,10 +57,14 @@
       device_id,
 
       // GET the bug to display today (depends on user's current streak).
+      // Pass { afterId: <bug.id> } for "practice mode" — returns the next bug in
+      // the catalog regardless of streak (no XP / no streak side-effects).
       // Returns { bug: {id, day, difficulty, title, desc, code, bugLine, hint, xp},
       //          device: { streak, best_streak, total_xp, bugs_solved, already_solved_today } }
-      getBugOfTheDay() {
-        return call("/bug-of-the-day?device_id=" + encodeURIComponent(device_id));
+      getBugOfTheDay(opts) {
+        var q = "?device_id=" + encodeURIComponent(device_id);
+        if (opts && opts.afterId != null) q += "&after_id=" + encodeURIComponent(opts.afterId);
+        return call("/bug-of-the-day" + q);
       },
 
       // POST a fix attempt. The server validates against accept regexes
