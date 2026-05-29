@@ -153,6 +153,9 @@ function MobileRoot() {
       load({ afterId: bug?.id });
     }
   }
+  function skip() {
+    load({ afterId: bug?.id });
+  }
   function startPractice() {
     setPracticeMode(true);
     load({ afterId: bug?.id });
@@ -175,7 +178,7 @@ function MobileRoot() {
   }
 
   if (screen === "challenge") {
-    return <ChallengeScreen bug={bug} palette={PALETTE} speed={1} onSubmit={submit} onBack={back} />;
+    return <ChallengeScreen bug={bug} palette={PALETTE} speed={1} onSubmit={submit} onSkip={skip} onBack={back} />;
   }
 
   if (screen === "result") {

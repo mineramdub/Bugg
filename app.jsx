@@ -296,18 +296,24 @@ function StreakBadge({ streak }) {
 // ─────────────────────────────────────────────────────────────
 // Challenge screen — interactive code editor
 // ─────────────────────────────────────────────────────────────
-function ChallengeScreen({ bug, palette, onSubmit, onBack, speed }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(bug.code[bug.bugLine]);
+function ChallengeScreen({ bug, palette, onSubmit, onSkip, onBack, speed }) {
+  const [lines, setLines] = useState([...bug.code]);
+  const [editingLine, setEditingLine] = useState(null);
   const inputRef = useRef(null);
 
   useEffect(() => {
-    if (editing && inputRef.current) inputRef.current.focus();
-  }, [editing]);
+    if (editingLine !== null && inputRef.current) inputRef.current.focus();
+  }, [editingLine]);
+
+  function updateLine(i, val) {
+    setLines(prev => { const next = [...prev]; next[i] = val; return next; });
+  }
+
+  function stopEditing() { setEditingLine(null); }
 
   function submit() {
-    // Just pass the draft up — the parent decides correctness (server or local fallback).
-    onSubmit({ draft });
+    // Send full code so multi-line fixes are validated correctly.
+    onSubmit({ draft: lines.join('\n') });
   }
 
   return (
@@ -316,7 +322,7 @@ function ChallengeScreen({ bug, palette, onSubmit, onBack, speed }) {
       position: 'relative', overflow: 'hidden',
       paddingTop: 64, fontFamily: FONT_BODY,
     }}>
-      {/* small floating shapes — kept subtle on this work screen */}
+      {/* small floating shapes */}
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.85 }}>
         <Diamond x={300} y={64} size={32} color={palette[1]} rotate={45} speed={speed} delay={0} />
         <Circle x={20} y={70} size={36} color={palette[0]} speed={speed} delay={0.3} />
@@ -329,9 +335,7 @@ function ChallengeScreen({ bug, palette, onSubmit, onBack, speed }) {
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         padding: '12px 18px', position: 'relative', zIndex: 5,
       }}>
-        <button onClick={onBack} style={{
-          ...iconBtn(),
-        }}>
+        <button onClick={onBack} style={{ ...iconBtn() }}>
           <svg width="14" height="14" viewBox="0 0 14 14"><path d="M9 1L3 7l6 6" stroke={PAL.ink} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.55)', fontWeight: 600, letterSpacing: 0.4 }}>
@@ -350,7 +354,7 @@ function ChallengeScreen({ bug, palette, onSubmit, onBack, speed }) {
         </div>
       </div>
 
-      {/* Code block */}
+      {/* Code block — all lines editable on tap */}
       <div style={{
         margin: '16px 16px 0', padding: '14px 0',
         background: PAL.ink, color: '#e8e8e3', borderRadius: 18,
@@ -360,40 +364,40 @@ function ChallengeScreen({ bug, palette, onSubmit, onBack, speed }) {
         position: 'relative', zIndex: 5,
       }}>
         <div style={{ padding: '0 14px', color: 'rgba(255,255,255,0.4)', fontSize: 10.5, letterSpacing: 0.5, marginBottom: 6, textTransform: 'uppercase', fontWeight: 600 }}>
-          challenge.c
+          challenge.c — appuie sur une ligne pour la modifier
         </div>
-        {bug.code.map((line, i) => {
+        {lines.map((line, i) => {
           const isBug = i === bug.bugLine;
+          const isEditing = editingLine === i;
+          const changed = line !== bug.code[i];
           return (
             <div key={i} style={{
-              display: 'flex',
-              padding: '2px 14px',
-              background: isBug ? 'rgba(255,95,162,0.12)' : 'transparent',
-              borderLeft: isBug ? `3px solid ${palette[0]}` : '3px solid transparent',
+              display: 'flex', padding: '2px 14px',
+              background: isBug ? 'rgba(255,95,162,0.12)' : changed ? 'rgba(62,234,132,0.07)' : 'transparent',
+              borderLeft: isBug ? `3px solid ${palette[0]}` : changed ? '3px solid #3eea84' : '3px solid transparent',
             }}>
-              <span style={{ width: 22, color: 'rgba(255,255,255,0.3)', textAlign: 'right', marginRight: 12, userSelect: 'none' }}>{i+1}</span>
-              {isBug ? (
-                editing ? (
-                  <input
-                    ref={inputRef}
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    onBlur={() => setEditing(false)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); setEditing(false); } }}
-                    style={{
-                      flex: 1, background: 'rgba(255,255,255,0.08)',
-                      border: '1px solid rgba(255,95,162,0.6)',
-                      borderRadius: 4, padding: '0 6px',
-                      fontFamily: FONT_MONO, fontSize: 12.5, color: '#fff', outline: 'none',
-                    }}
-                  />
-                ) : (
-                  <span onClick={() => setEditing(true)} style={{ flex: 1, cursor: 'text', textDecoration: draft !== bug.code[bug.bugLine] ? 'none' : 'underline wavy ' + palette[0], textUnderlineOffset: 4 }}>
-                    {draft}
-                  </span>
-                )
+              <span style={{ width: 22, color: 'rgba(255,255,255,0.3)', textAlign: 'right', marginRight: 12, userSelect: 'none', flexShrink: 0 }}>{i+1}</span>
+              {isEditing ? (
+                <input
+                  ref={inputRef}
+                  value={line}
+                  onChange={(e) => updateLine(i, e.target.value)}
+                  onBlur={stopEditing}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); stopEditing(); } }}
+                  style={{
+                    flex: 1, background: 'rgba(255,255,255,0.08)',
+                    border: `1px solid ${isBug ? 'rgba(255,95,162,0.6)' : 'rgba(255,255,255,0.3)'}`,
+                    borderRadius: 4, padding: '0 6px',
+                    fontFamily: FONT_MONO, fontSize: 12.5, color: '#fff', outline: 'none',
+                  }}
+                />
               ) : (
-                <code style={{ flex: 1, whiteSpace: 'pre', color: i === 0 || line.startsWith('#') ? '#a8d4b0' : '#e8e8e3' }}>{line}</code>
+                <span
+                  onClick={() => setEditingLine(i)}
+                  style={{ flex: 1, cursor: 'text', whiteSpace: 'pre', color: line.startsWith('#') ? '#a8d4b0' : '#e8e8e3', minHeight: '1em', display: 'block' }}
+                >
+                  {line || ' '}
+                </span>
               )}
             </div>
           );
@@ -408,15 +412,14 @@ function ChallengeScreen({ bug, palette, onSubmit, onBack, speed }) {
         position: 'absolute', left: 16, right: 16, bottom: 56,
         display: 'flex', gap: 10,
       }}>
-        <button onClick={() => setEditing(true)} style={{
+        <button onClick={onSkip} style={{
           flex: 1, ...ctaBtn('#fff', PAL.ink),
-          border: '1px solid rgba(0,0,0,0.1)', boxShadow: 'none',
-          fontSize: 14,
+          border: '1px solid rgba(0,0,0,0.1)', boxShadow: 'none', fontSize: 14,
         }}>
-          {editing ? 'Édition…' : 'Éditer la ligne'}
+          Passer →
         </button>
         <button onClick={submit} style={{
-          flex: 1, ...ctaBtn(PAL.ink, '#fff'), fontSize: 14,
+          flex: 2, ...ctaBtn(PAL.ink, '#fff'), fontSize: 14,
         }}>
           Soumettre
         </button>
