@@ -383,7 +383,15 @@ function ChallengeScreen({ bug, palette, onSubmit, onSkip, onBack, speed }) {
                   value={line}
                   onChange={(e) => updateLine(i, e.target.value)}
                   onBlur={stopEditing}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); stopEditing(); } }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      // Insert new empty line below and start editing it
+                      setLines(prev => { const next = [...prev]; next.splice(i + 1, 0, ''); return next; });
+                      setEditingLine(i + 1);
+                    }
+                    if (e.key === 'Escape') stopEditing();
+                  }}
                   style={{
                     flex: 1, background: 'rgba(255,255,255,0.08)',
                     border: `1px solid ${isBug ? 'rgba(255,95,162,0.6)' : 'rgba(255,255,255,0.3)'}`,
@@ -459,25 +467,32 @@ function Hint({ hint, accent }) {
 // ─────────────────────────────────────────────────────────────
 // Result screen
 // ─────────────────────────────────────────────────────────────
-function ResultScreen({ bug, correct, draft, palette, speed, onContinue, answer, explanation, xp_awarded }) {
-  // Prefer props (server response) over bug fields (offline/canvas fallback)
+function ResultScreen({ bug, correct, skipped, draft, palette, speed, onContinue, answer, explanation, xp_awarded }) {
   const _answer      = (answer !== undefined && answer !== null) ? answer : bug.answer;
   const _explanation = (explanation !== undefined && explanation !== null) ? explanation : bug.explanation;
   const _xp          = (xp_awarded !== undefined && xp_awarded !== null) ? xp_awarded : (bug.xp || 0);
+
+  const statusLabel = skipped ? 'Bug passé' : correct ? 'Bug résolu !' : 'Pas tout à fait…';
+  const heroText    = skipped ? 'Correction' : correct ? `+${_xp} XP` : 'Réessaie';
+  const cardTitle   = skipped ? 'La correction' : correct ? 'Pourquoi ça marche' : 'Le bon fix';
+  const btnLabel    = skipped ? 'Bug suivant →' : correct ? 'Continuer la série →' : 'Réessayer';
+  const accent      = skipped ? palette[4] : correct ? palette[6] : palette[1];
+  const shapeColor  = skipped ? palette[4] : correct ? null : null; // null = use palette[x] logic below
+  const muted       = !correct && !skipped;
+
   return (
     <div style={{
-      width: '100%', height: '100%', background: correct ? PAL.bg : PAL.bg,
+      width: '100%', height: '100%', background: PAL.bg,
       position: 'relative', overflow: 'hidden', paddingTop: 64,
       fontFamily: FONT_BODY,
     }}>
-      {/* Celebration shape garden if correct, muted if wrong */}
-      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: correct ? 1 : 0.45 }}>
-        <Scallop x={-40} y={120} size={150} color={correct ? palette[6] : '#d1cdc4'} lobes={14} speed={speed * 0.5} delay={0} />
-        <Diamond x={310} y={140} size={70} color={correct ? palette[1] : '#d1cdc4'} rotate={45} speed={speed} delay={0.3} />
-        <Circle x={280} y={200} size={56} color={correct ? palette[0] : '#d1cdc4'} speed={speed} delay={0.4} />
-        <Squiggle x={20} y={260} w={140} h={40} color={correct ? palette[5] : '#d1cdc4'} strokeW={16} speed={speed} delay={0.6} rotate={-6} />
-        <Squircle x={300} y={750} size={60} color={correct ? palette[4] : '#d1cdc4'} speed={speed} delay={0} />
-        <Drop x={32} y={760} size={50} color={correct ? palette[8] : '#d1cdc4'} accent={correct ? palette[3] : '#fff'} speed={speed} delay={0.2} rotate={20} />
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: muted ? 0.45 : 1 }}>
+        <Scallop x={-40} y={120} size={150} color={muted ? '#d1cdc4' : palette[6]} lobes={14} speed={speed * 0.5} delay={0} />
+        <Diamond x={310} y={140} size={70} color={muted ? '#d1cdc4' : palette[1]} rotate={45} speed={speed} delay={0.3} />
+        <Circle x={280} y={200} size={56} color={muted ? '#d1cdc4' : palette[0]} speed={speed} delay={0.4} />
+        <Squiggle x={20} y={260} w={140} h={40} color={muted ? '#d1cdc4' : palette[5]} strokeW={16} speed={speed} delay={0.6} rotate={-6} />
+        <Squircle x={300} y={750} size={60} color={muted ? '#d1cdc4' : palette[4]} speed={speed} delay={0} />
+        <Drop x={32} y={760} size={50} color={muted ? '#d1cdc4' : palette[8]} accent={muted ? '#fff' : palette[3]} speed={speed} delay={0.2} rotate={20} />
       </div>
 
       {/* Hero status */}
@@ -485,17 +500,11 @@ function ResultScreen({ bug, correct, draft, palette, speed, onContinue, answer,
         position: 'absolute', top: 110, left: 0, right: 0, padding: '0 28px',
         textAlign: 'center', zIndex: 5,
       }}>
-        <div style={{
-          fontSize: 11, letterSpacing: 0.8, fontWeight: 700,
-          color: correct ? palette[6] : palette[1], textTransform: 'uppercase',
-        }}>
-          {correct ? 'Bug résolu !' : 'Pas tout à fait…'}
+        <div style={{ fontSize: 11, letterSpacing: 0.8, fontWeight: 700, color: accent, textTransform: 'uppercase' }}>
+          {statusLabel}
         </div>
-        <div style={{
-          fontFamily: FONT_DISPLAY, fontSize: 52, lineHeight: 0.95,
-          color: PAL.ink, marginTop: 8, letterSpacing: -1,
-        }}>
-          {correct ? `+${_xp} XP` : 'Réessaie'}
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 52, lineHeight: 0.95, color: PAL.ink, marginTop: 8, letterSpacing: -1 }}>
+          {heroText}
         </div>
       </div>
 
@@ -506,7 +515,7 @@ function ResultScreen({ bug, correct, draft, palette, speed, onContinue, answer,
         boxShadow: '0 1px 0 rgba(0,0,0,0.04), 0 12px 28px rgba(0,0,0,0.06)',
       }}>
         <div style={{ fontSize: 11, letterSpacing: 0.6, color: 'rgba(0,0,0,0.5)', textTransform: 'uppercase', fontWeight: 600 }}>
-          {correct ? 'Pourquoi ça marche' : 'Le bon fix'}
+          {cardTitle}
         </div>
         <div style={{
           fontFamily: FONT_MONO, fontSize: 12, color: PAL.ink,
@@ -525,7 +534,7 @@ function ResultScreen({ bug, correct, draft, palette, speed, onContinue, answer,
           ...ctaBtn(PAL.ink, '#fff'), width: '100%',
           padding: '16px 24px', borderRadius: 999, fontSize: 16,
         }}>
-          {correct ? 'Continuer la série →' : 'Réessayer'}
+          {btnLabel}
         </button>
       </div>
     </div>

@@ -153,8 +153,20 @@ function MobileRoot() {
       load({ afterId: bug?.id });
     }
   }
-  function skip() {
-    load({ afterId: bug?.id });
+  async function skip() {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const r = await api.submit(bug.id, '__skip__');
+      setResultData({ draft: '', correct: false, skipped: true, answer: r.answer, explanation: r.explanation, xp_awarded: 0 });
+      if (r.device) setDevice(r.device);
+      setScreen("result");
+    } catch (e) {
+      setResultData({ draft: '', correct: false, skipped: true, answer: bug.answer || '—', explanation: bug.explanation || '—', xp_awarded: 0 });
+      setScreen("result");
+    } finally {
+      setSubmitting(false);
+    }
   }
   function startPractice() {
     setPracticeMode(true);
@@ -203,24 +215,32 @@ function MobileRoot() {
 
 // ── Result screen with practice-mode CTA ──────────────────────────────
 function ResultScreenLive({ bug, result, device, palette, practiceMode, onContinue, onStartPractice, onBack }) {
-  const { correct, draft, answer, explanation, xp_awarded } = result;
-  // Render the existing ResultScreen for the visual treatment, then layer extra CTAs over its button area.
-  // We hide the default button by overlaying our own at the same position.
+  const { correct, skipped, draft, answer, explanation, xp_awarded } = result;
+
+  // When skipped: "Bug suivant →" goes to the next bug (practice mode).
+  // When wrong: "Réessayer" goes back to challenge.
+  // When correct: "Continuer la série →" reloads.
+  function handleContinue() {
+    if (skipped) { onStartPractice(); return; }
+    onContinue();
+  }
+
   return (
     <div style={{ position: "absolute", inset: 0 }}>
       <ResultScreen
         bug={bug}
         correct={correct}
+        skipped={skipped}
         draft={draft}
         answer={answer}
         explanation={explanation}
         xp_awarded={xp_awarded}
         palette={palette}
         speed={1}
-        onContinue={onContinue}
+        onContinue={handleContinue}
       />
-      {/* Practice-mode hint shown only when correct + daily bug not yet in practice mode */}
-      {correct && !practiceMode && !device?.already_solved_today && (
+      {/* Practice-mode hint shown only when correct (not skipped) */}
+      {correct && !skipped && !practiceMode && !device?.already_solved_today && (
         <div style={{
           position: "absolute", left: 16, right: 16, bottom: 130, zIndex: 6,
           background: "rgba(255,255,255,0.7)", backdropFilter: "blur(6px)",
@@ -231,8 +251,8 @@ function ResultScreenLive({ bug, result, device, palette, practiceMode, onContin
           🔥 Bug du jour réussi !
         </div>
       )}
-      {/* Secondary CTA: practice another bug */}
-      {correct && (
+      {/* Secondary CTA: practice another bug (only when correct, not skipped) */}
+      {correct && !skipped && (
         <div style={{
           position: "absolute", left: 16, right: 16, bottom: 14, zIndex: 6,
           display: "flex", justifyContent: "center",
