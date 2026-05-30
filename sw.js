@@ -6,7 +6,7 @@
 //     last fetched bug-of-the-day when offline).
 //   - For Google Fonts: stale-while-revalidate.
 
-const VERSION = "bugg-v3";
+const VERSION = "bugg-v4";
 const CACHE_STATIC = `${VERSION}-static`;
 const CACHE_RUNTIME = `${VERSION}-runtime`;
 const CACHE_API = `${VERSION}-api`;
